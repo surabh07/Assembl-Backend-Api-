@@ -8,7 +8,6 @@ import { envValidationSchema } from './config/env.validation.js';
 // Config registrations
 import authConfig from './auth/auth.config.js';
 import mailConfig from './mail/mail.config.js';
-import supabaseConfig from './supabase/supabase.config.js';
 import cronConfig from './cron/cron.config.js';
 import tasksConfig from './tasks/tasks.config.js';
 import registrationsConfig from './registrations/registrations.config.js';
@@ -22,7 +21,6 @@ import googleCalendarConfig from './google-calendar/google-calendar.config.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 // Integration modules
-import { SupabaseModule } from './supabase/supabase.module.js';
 import { WhatsappModule } from './whatsapp/whatsapp.module.js';
 import { TeamsNotifyModule } from './teams-notify/teams-notify.module.js';
 import { SlackModule } from './slack/slack.module.js';
@@ -67,7 +65,6 @@ import { MailModule } from './mail/mail.module.js';
       load: [
         authConfig,
         mailConfig,
-        supabaseConfig,
         cronConfig,
         tasksConfig,
         registrationsConfig,
@@ -97,7 +94,6 @@ import { MailModule } from './mail/mail.module.js';
     MailModule,
 
     // Integrations
-    SupabaseModule,
     WhatsappModule,
     TeamsNotifyModule,
     SlackModule,

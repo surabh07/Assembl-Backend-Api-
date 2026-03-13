@@ -24,12 +24,6 @@ export const envValidationSchema = Joi.object({
   // Frontend
   FRONTEND_URL: Joi.string().uri().required(),
 
-  // Supabase Storage (file uploads only)
-  SUPABASE_URL: Joi.string().uri().required(),
-  SUPABASE_ANON_KEY: Joi.string().required(),
-  SUPABASE_SERVICE_KEY: Joi.string().required(),
-  SUPABASE_BUCKET: Joi.string().required(),
-
   // Optional: Twilio WhatsApp
   TWILIO_ACCOUNT_SID: Joi.string().optional(),
   TWILIO_AUTH_TOKEN: Joi.string().optional(),
