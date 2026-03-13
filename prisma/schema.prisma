@@ -1,0 +1,620 @@
+// Assembl — Prisma Schema
+// Generator: Prisma 7 with NeonDB serverless adapter
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  SUPER_ADMIN
+  EVENT_MANAGEMENT_LEAD
+  POC_OUTREACH
+  POC_SPONSORSHIP
+  POC_TECH_AV
+  POC_MARKETING
+  POC_VOLUNTEER
+  POC_OPERATIONS
+  TEAM_LEAD
+  TEAM_MEMBER
+  REGISTRATION_DESK
+  USER
+}
+
+enum Department {
+  OUTREACH
+  MARKETING
+  TECH_AV
+  VOLUNTEER_COORDINATOR
+  SPONSORSHIP
+  OPERATIONS_LOGISTICS
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MediaCollection {
+  event_banners
+  event_gallery
+  speaker_avatars
+  org_logos
+  user_avatars
+  task_attachments
+}
+
+enum CheckInStatus {
+  SCHEDULED
+  CHECKED_IN
+  CHECKED_OUT
+  ABSENT
+}
+
+enum RegistrationSource {
+  ONLINE
+  ON_SPOT
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  TASK_OVERDUE
+  SCHEDULE_REMINDER
+  EVENT_UPDATE
+  MEETING_NOTES
+  REGISTRATION_CONFIRMED
+  GENERAL
+  EVENT_REMINDER
+  EVENT_CANCELLED
+  REVIEW_REQUEST
+  CONNECTION_ATTENDING
+}
+
+enum EventTemplateType {
+  CONCERT
+  HACKATHON
+  CONFERENCE
+  WORKSHOP
+  MEETUP
+  SEMINAR
+  CUSTOM
+}
+
+enum AttendeeVisibility {
+  PUBLIC
+  CONNECTIONS_ONLY
+  HIDDEN
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String
+  password   String
+  role       Role        @default(USER)
+  department Department?
+
+  // Profile
+  bio     String?
+  phone   String?
+  avatar  String?
+  company String?
+  college String?
+
+  // Social links
+  linkedinUrl String?
+  twitterUrl  String?
+  githubUrl   String?
+  websiteUrl  String?
+
+  // Attendee visibility
+  attendeeVisibility AttendeeVisibility @default(PUBLIC)
+
+  // Auth
+  refreshToken        String?
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+
+  // Soft delete
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  notificationPreferences     UserNotificationPreferences?
+  registrations               Registration[]
+  eventInterests              EventInterest[]
+  reviews                     Review[]
+  notifications               Notification[]
+  teamMemberships             TeamMember[]
+  ledTeams                    Team[]                       @relation("TeamLead")
+  tasks                       Task[]                       @relation("TaskAssignee")
+  createdTasks                Task[]                       @relation("TaskCreator")
+  taskComments                TaskComment[]
+  scheduleSlots               ScheduleSlot[]
+  meetingNotes                MeetingNote[]
+  meetingNoteReadReceipts     MeetingNoteReadReceipt[]
+  auditLogs                   AuditLog[]
+  deskAssignments             EventDeskAssignment[]        @relation("DeskOperator")
+  deskAssignmentsGiven        EventDeskAssignment[]        @relation("DeskAssigner")
+  eventDayPOCsAssigned        EventDayPOC[]                @relation("POCAssignee")
+  eventDayPOCsGiven           EventDayPOC[]                @relation("POCAssigner")
+  connectionInterestsSent     AttendeeConnectionInterest[] @relation("ConnectionFrom")
+  connectionInterestsReceived AttendeeConnectionInterest[] @relation("ConnectionTo")
+  taskAttachments             TaskAttachment[]             @relation("AttachmentUploader")
+  taskStatusHistories         TaskStatusHistory[]
+}
+
+model UserNotificationPreferences {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  emailEnabled    Boolean @default(true)
+  whatsAppEnabled Boolean @default(false)
+  taskReminders   Boolean @default(true)
+  eventReminders  Boolean @default(true)
+  marketingEmails Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Organization {
+  id      String  @id @default(cuid())
+  name    String
+  logo    String?
+  website String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  events         Event[]
+  eventTemplates EventTemplate[]
+}
+
+model Speaker {
+  id          String  @id @default(cuid())
+  name        String
+  designation String?
+  avatar      String?
+  bio         String?
+  linkedin    String?
+  twitter     String?
+  website     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events EventSpeaker[]
+}
+
+model EventSpeaker {
+  id        String @id @default(cuid())
+  eventId   String
+  speakerId String
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  speaker Speaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, speakerId])
+}
+
+model Category {
+  id    String  @id @default(cuid())
+  name  String
+  slug  String  @unique
+  color String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events EventCategory[]
+}
+
+model EventCategory {
+  id         String @id @default(cuid())
+  eventId    String
+  categoryId String
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, categoryId])
+}
+
+model Event {
+  id              String             @id @default(cuid())
+  title           String
+  slug            String             @unique
+  description     String?
+  banner          String?
+  startDate       DateTime
+  endDate         DateTime
+  location        String?
+  isVirtual       Boolean            @default(false)
+  isFeatured      Boolean            @default(false)
+  isPaid          Boolean            @default(false)
+  price           Float?
+  maxCapacity     Int?
+  status          EventStatus        @default(DRAFT)
+  templateType    EventTemplateType?
+  checkOutEnabled Boolean            @default(false)
+
+  organizationId String?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization        Organization?                @relation(fields: [organizationId], references: [id])
+  categories          EventCategory[]
+  speakers            EventSpeaker[]
+  registrations       Registration[]
+  interests           EventInterest[]
+  deskAssignments     EventDeskAssignment[]
+  galleryPhotos       GalleryPhoto[]
+  reviews             Review[]
+  teams               Team[]
+  scheduleSlots       ScheduleSlot[]
+  eventDayPOCs        EventDayPOC[]
+  meetingNotes        MeetingNote[]
+  connectionInterests AttendeeConnectionInterest[]
+}
+
+model EventTemplate {
+  id             String            @id @default(cuid())
+  name           String
+  description    String?
+  templateType   EventTemplateType
+  defaultFields  Json
+  isActive       Boolean           @default(true)
+  organizationId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model Registration {
+  id           String             @id @default(cuid())
+  userId       String
+  eventId      String
+  checkInCode  String             @unique
+  source       RegistrationSource @default(ONLINE)
+  attendedAt   DateTime?
+  checkedOutAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId, userId])
+}
+
+model EventDeskAssignment {
+  id           String   @id @default(cuid())
+  eventId      String
+  userId       String
+  assignedById String
+  assignedAt   DateTime @default(now())
+
+  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User  @relation("DeskOperator", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User  @relation("DeskAssigner", fields: [assignedById], references: [id])
+
+  @@unique([eventId, userId])
+}
+
+model EventInterest {
+  id      String @id @default(cuid())
+  userId  String
+  eventId String
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId, userId])
+}
+
+model AttendeeConnectionInterest {
+  id         String @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  eventId    String
+
+  createdAt DateTime @default(now())
+
+  fromUser User  @relation("ConnectionFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User  @relation("ConnectionTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  event    Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId, eventId])
+}
+
+model GalleryPhoto {
+  id       String  @id @default(cuid())
+  eventId  String
+  mediaUrl String
+  caption  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id      String  @id @default(cuid())
+  userId  String
+  eventId String
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId, userId])
+}
+
+model Team {
+  id         String      @id @default(cuid())
+  name       String
+  department Department?
+  eventId    String?
+  leadId     String
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  event         Event?         @relation(fields: [eventId], references: [id])
+  lead          User           @relation("TeamLead", fields: [leadId], references: [id])
+  members       TeamMember[]
+  tasks         Task[]
+  scheduleSlots ScheduleSlot[]
+  eventDayPOCs  EventDayPOC[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model EventDayPOC {
+  id             String  @id @default(cuid())
+  eventId        String
+  teamId         String
+  responsibility String
+  assigneeId     String
+  assignedById   String
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team       Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignee   User  @relation("POCAssignee", fields: [assigneeId], references: [id])
+  assignedBy User  @relation("POCAssigner", fields: [assignedById], references: [id])
+
+  @@unique([eventId, teamId, responsibility])
+  @@index([eventId, teamId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  eventId     String?
+  teamId      String?
+  assigneeId  String?
+  creatorId   String
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  assignee      User?               @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator       User                @relation("TaskCreator", fields: [creatorId], references: [id])
+  team          Team?               @relation(fields: [teamId], references: [id])
+  comments      TaskComment[]
+  attachments   TaskAttachment[]
+  statusHistory TaskStatusHistory[]
+
+  @@index([assigneeId, status])
+}
+
+model TaskComment {
+  id       String @id @default(cuid())
+  taskId   String
+  authorId String
+  content  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+}
+
+model TaskAttachment {
+  id           String  @id @default(cuid())
+  taskId       String
+  mediaUrl     String
+  filename     String
+  size         Int
+  uploadedById String?
+
+  createdAt DateTime @default(now())
+
+  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User? @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+}
+
+model TaskStatusHistory {
+  id          String     @id @default(cuid())
+  taskId      String
+  changedById String
+  oldStatus   TaskStatus
+  newStatus   TaskStatus
+  note        String?
+  changedAt   DateTime   @default(now())
+
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changedBy User @relation(fields: [changedById], references: [id])
+}
+
+model ScheduleSlot {
+  id           String        @id @default(cuid())
+  eventId      String
+  teamId       String?
+  userId       String?
+  title        String
+  description  String?
+  location     String?
+  startTime    DateTime
+  endTime      DateTime
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       CheckInStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team  Team? @relation(fields: [teamId], references: [id])
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@index([eventId, teamId])
+}
+
+model MeetingNote {
+  id            String      @id @default(cuid())
+  eventId       String?
+  department    Department?
+  title         String
+  content       String
+  actionItems   String[]
+  attendees     String[]
+  linkedTaskIds String[]
+  authorId      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event        Event?                   @relation(fields: [eventId], references: [id])
+  author       User                     @relation(fields: [authorId], references: [id])
+  readReceipts MeetingNoteReadReceipt[]
+}
+
+model MeetingNoteReadReceipt {
+  id            String   @id @default(cuid())
+  meetingNoteId String
+  userId        String
+  readAt        DateTime @default(now())
+
+  meetingNote MeetingNote @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingNoteId, userId])
+}
+
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType
+  title  String
+  body   String
+  read   Boolean          @default(false)
+  link   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model Media {
+  id           String          @id @default(cuid())
+  filename     String
+  storagePath  String
+  publicUrl    String
+  mimeType     String
+  size         Int
+  collection   MediaCollection
+  alt          String?
+  uploadedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  oldValue   Json?
+  newValue   Json?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+}

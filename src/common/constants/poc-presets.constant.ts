@@ -1,0 +1,46 @@
+export const POC_RESPONSIBILITY_PRESETS: Record<string, string[]> = {
+  OUTREACH: [
+    'Speaker Coordination',
+    'Partner Outreach',
+    'Community Liaison',
+    'Guest Relations',
+    'Collaborator Management',
+  ],
+  SPONSORSHIP: [
+    'Sponsor Booth Lead',
+    'Sponsor Communication',
+    'Invoice & Deliverables',
+    'Branding Placement',
+    'Sponsor Welcome',
+  ],
+  TECH_AV: [
+    'AV Control',
+    'Live Streaming',
+    'Wi-Fi & Power Lead',
+    'Submission Portal Lead',
+    'Tech Helpdesk',
+    'Recording Lead',
+  ],
+  MARKETING: [
+    'Social Media Coverage',
+    'Photography',
+    'Videography',
+    'Press & PR',
+    'Content Creation',
+  ],
+  VOLUNTEER: [
+    'Volunteer Briefing',
+    'Crowd Management',
+    'Wayfinding & Signage',
+    'Queue Management',
+    'Accessibility Support',
+  ],
+  OPERATIONS: [
+    'Registration Desk',
+    'Food Station Lead',
+    'Venue Setup & Teardown',
+    'Safety & Security Liaison',
+    'Lost & Found',
+    'VIP Escort',
+  ],
+};
